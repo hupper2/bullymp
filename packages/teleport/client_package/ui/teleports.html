@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-user-select: none;
+            user-select: none;
+            background: transparent;
+            overflow: hidden;
+        }
+        
+        /* Контейнер телепорта */
+        #tp_container {
+            background: rgba(10, 10, 15, 0.95);
+            border-radius: 8px;
+            padding: 15px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 360px;
+            max-height: 500px;
+            display: none;
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header h3 {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            font-weight: 600;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+        }
+        
+        .close-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.9);
+            transform: scale(1.05);
+        }
+        
+        #tp_list {
+            max-height: 360px;
+            overflow-y: auto;
+            margin: 0;
+            padding: 5px 0;
+        }
+        
+        /* Стили для скроллбара */
+        #tp_list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #tp_list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 3px;
+        }
+        
+        #tp_list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+        
+        #tp_list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+        
+        .tp-item {
+            padding: 12px 15px;
+            margin: 6px 0;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            border: 1px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Эффект свечения при наведении */
+        .tp-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.03),
+                transparent
+            );
+            transition: left 0.6s ease;
+        }
+        
+        .tp-item:hover::before {
+            left: 100%;
+        }
+        
+        .tp-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(2px);
+        }
+        
+        .tp-item:active {
+            transform: translateX(2px) scale(0.99);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .icon {
+            margin-right: 12px;
+            color: rgba(160, 200, 255, 0.8);
+            font-size: 16px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(160, 200, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        .location-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            flex: 1;
+        }
+        
+        .hint {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 12px;
+            font-size: 12px;
+            color: rgba(200, 200, 255, 0.4);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-style: normal;
+        }
+        
+        .no-locations {
+            text-align: center;
+            padding: 30px 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-style: italic;
+            font-size: 14px;
+        }
+        
+        /* Индикатор загрузки при телепортации */
+        .teleporting {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        
+        .teleporting::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: rgba(160, 200, 255, 0.8);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* Сообщение об успешной телепортации */
+        .teleport-success {
+            background: rgba(76, 175, 80, 0.1) !important;
+            border-color: rgba(76, 175, 80, 0.3) !important;
+        }
+        
+        .teleport-success .icon {
+            color: rgba(76, 175, 80, 0.9);
+            background: rgba(76, 175, 80, 0.15);
+        }
+    </style>
+    
+    <script>
+        let isTeleporting = false;
+        
+        function addTpLocation(name) {
+            var tpList = document.getElementById('tp_list');
+            
+            // Удаляем сообщение "Нет локаций", если оно есть
+            var noLocations = document.querySelector('.no-locations');
+            if (noLocations) {
+                noLocations.remove();
+            }
+            
+            var item = document.createElement('div');
+            item.className = 'tp-item';
+            item.onclick = function() {
+                if (!isTeleporting) {
+                    teleportTo(name, this);
+                }
+            };
+            
+            const displayName = name.replace(/_/g, ' ');
+            
+            item.innerHTML = `
+                <div class="icon">→</div>
+                <div class="location-name">${displayName}</div>
+            `;
+            
+            tpList.appendChild(item);
+        }
+
+        function teleportTo(loc, element) {
+            if (isTeleporting) return;
+            
+            isTeleporting = true;
+            
+            // Добавляем индикатор загрузки
+            element.classList.add('teleporting');
+            
+            // Отправляем запрос на телепортацию
+            bullymp.callEvent('teleports.teleportTo', loc);
+            
+            // Через 2 секунды снимаем индикатор (на случай если сервер не ответил)
+            setTimeout(() => {
+                if (isTeleporting) {
+                    isTeleporting = false;
+                    element.classList.remove('teleporting');
+                    element.classList.add('teleport-success');
+                    
+                    // Убираем успешный стиль через 1.5 секунды
+                    setTimeout(() => {
+                        element.classList.remove('teleport-success');
+                    }, 1500);
+                }
+            }, 2000);
+        }
+        
+        // Функция успешной телепортации (вызывается с сервера)
+        function onTeleportSuccess() {
+            isTeleporting = false;
+            
+            // Находим все телепортирующиеся элементы и убираем индикатор
+            const teleportingElements = document.querySelectorAll('.teleporting');
+            teleportingElements.forEach(el => {
+                el.classList.remove('teleporting');
+                el.classList.add('teleport-success');
+                
+                setTimeout(() => {
+                    el.classList.remove('teleport-success');
+                }, 1500);
+            });
+        }
+        
+        function closeMenu() {
+            bullymp.showCursor(false);
+            document.getElementById('tp_container').style.display = 'none';
+            
+            // Очищаем список при закрытии
+            document.getElementById('tp_list').innerHTML = '<div class="no-locations">Нет доступных локаций</div>';
+        }
+
+        bullymp.addEvent('teleports.addLocation', function(locname) {
+            addTpLocation(locname);
+        });
+        
+        bullymp.addEvent('teleports.teleportSuccess', function() {
+            onTeleportSuccess();
+        });
+        
+        bullymp.addEvent('teleports.teleportFail', function() {
+            isTeleporting = false;
+            
+            // Убираем индикаторы загрузки при ошибке
+            const teleportingElements = document.querySelectorAll('.teleporting');
+            teleportingElements.forEach(el => {
+                el.classList.remove('teleporting');
+            });
+        });
+
+        bullymp.addEvent('teleports.show', function() {
+            document.getElementById('tp_container').style.display = 'block';
+            bullymp.showCursor(true);
+        });
+
+        // Закрытие по ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && document.getElementById('tp_container').style.display === 'block') {
+                closeMenu();
+            }
+        });
+
+        // Клик вне меню для закрытия
+        document.addEventListener('click', function(event) {
+            const tpContainer = document.getElementById('tp_container');
+            if (tpContainer.style.display === 'block' && 
+                !tpContainer.contains(event.target)) {
+                closeMenu();
+            }
+        });
+
+        // Инициализация при загрузке
+        window.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('tp_container').style.display = 'none';
+            
+            // Добавляем сообщение по умолчанию
+            var tpList = document.getElementById('tp_list');
+            if (tpList.children.length === 0) {
+                tpList.innerHTML = '<div class="no-locations">Нет доступных локаций</div>';
+            }
+            
+        });
+    </script>
+</head>
+
+<body>
+    <div id="tp_container">
+        <div class="header">
+            <h3>Телепорты</h3>
+            <button class="close-btn" onclick="closeMenu()">×</button>
+        </div>
+        
+        <div id="tp_list" class="ui list">
+            <!-- Локации будут добавляться здесь -->
+        </div>
+        
+        <div class="hint">
+            Выберите локацию для телепортации • ESC для выхода
+        </div>
+    </div>
+</body>
+</html>

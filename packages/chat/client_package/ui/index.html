@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-user-select: none;
+            user-select: none;
+            background: transparent;
+            overflow: hidden;
+        }
+        
+        /* Чат - слева сверху */
+        .chat-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 350px;
+            height: 200px;
+            background: transparent;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+            opacity: 0.6; /* Хорошая видимость */
+            transition: opacity 0.5s ease;
+        }
+        
+        /* Полностью прозрачный */
+        .chat-container.transparent {
+            opacity: 0.25; /* Слегка видно */
+        }
+        
+        /* При активации чата */
+        .chat-container.active {
+            opacity: 0.8; /* Очень хорошо видно */
+        }
+        
+        /* При открытом чате */
+        .chat-container.chat-open {
+            opacity: 1;
+        }
+        
+        /* Контейнер для сообщений */
+        .messages-container {
+            flex: 1;
+            overflow: hidden;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            min-height: 0;
+        }
+        
+        /* Список сообщений */
+        #chat-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        
+        /* Сообщение */
+        .message {
+            padding: 3px 0;
+            font-size: 13px;
+            line-height: 1.2;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 
+                0 0 4px rgba(0, 0, 0, 0.8),
+                0 0 6px rgba(0, 0, 0, 0.6),
+                1px 1px 2px rgba(0, 0, 0, 0.9);
+            word-wrap: break-word;
+            transition: all 0.5s ease;
+            font-weight: 500; /* Полужирный для лучшей читаемости */
+        }
+        
+        /* В прозрачном состоянии */
+        .transparent .message {
+            color: rgba(255, 255, 255, 0.75);
+            text-shadow: 
+                0 0 5px rgba(0, 0, 0, 0.9),
+                0 0 8px rgba(0, 0, 0, 0.7),
+                1px 1px 3px rgba(0, 0, 0, 1);
+        }
+        
+        /* Новое сообщение */
+        .message.new {
+            animation: slideUpFade 0.3s ease;
+        }
+        
+        @keyframes slideUpFade {
+            from { 
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Поле ввода - полностью прозрачное */
+        .input-wrapper {
+            display: none;
+            padding: 6px 8px 8px 8px;
+            background: transparent; /* Прозрачный фон */
+            pointer-events: all;
+            position: relative;
+        }
+        
+        /* Градиентная подложка для лучшей видимости поля ввода */
+        .input-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0.4) 0%,
+                rgba(0, 0, 0, 0.3) 30%,
+                transparent 100%
+            );
+            backdrop-filter: blur(2px);
+            z-index: -1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* При открытом чате */
+        .chat-open .input-wrapper::before {
+            background: linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0.6) 0%,
+                rgba(0, 0, 0, 0.4) 30%,
+                rgba(0, 0, 0, 0.2) 100%
+            );
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        #chat-input {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 14px;
+            background: rgba(15, 15, 20, 0.7); /* Полупрозрачный */
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            color: #ffffff;
+            font-family: inherit;
+            outline: none;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+        
+        #chat-input:focus {
+            background: rgba(20, 20, 30, 0.85);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.1),
+                inset 0 0 5px rgba(255, 255, 255, 0.05);
+        }
+        
+        #chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        /* Цветные имена игроков */
+        .player-name {
+            font-weight: 600;
+        }
+        
+        /* Системные сообщения */
+        .system {
+            color: #FFA500;
+            text-shadow: 0 0 8px rgba(255, 165, 0, 0.5);
+        }
+        
+        /* Ники игроков разных цветов */
+        .player1 {
+            color: #4CAF50;
+            text-shadow: 0 0 6px rgba(76, 175, 80, 0.4);
+        }
+        
+        .player2 {
+            color: #2196F3;
+            text-shadow: 0 0 6px rgba(33, 150, 243, 0.4);
+        }
+        
+        .player3 {
+            color: #9C27B0;
+            text-shadow: 0 0 6px rgba(156, 39, 176, 0.4);
+        }
+        
+        .player4 {
+            color: #FF5722;
+            text-shadow: 0 0 6px rgba(255, 87, 34, 0.4);
+        }
+        
+        .player5 {
+            color: #00BCD4;
+            text-shadow: 0 0 6px rgba(0, 188, 212, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Основной контейнер чата -->
+    <div class="chat-container" id="chat-container">
+        <!-- Контейнер для сообщений -->
+        <div class="messages-container" id="messages-container">
+            <!-- Список сообщений -->
+            <div id="chat-messages">
+                <!-- Сообщения будут добавляться здесь -->
+            </div>
+        </div>
+        
+        <!-- Поле ввода -->
+        <div class="input-wrapper" id="input-wrapper">
+            <input type="text" 
+                   id="chat-input" 
+                   placeholder="Нажмите Enter для отправки, ESC для отмены..."
+                   maxlength="150"
+                   autocomplete="off"
+                   spellcheck="false">
+        </div>
+    </div>
+    
+    <script>
+        // Основной объект чата
+        var chat = {
+            isOpen: false,
+            isActive: false,
+            maxMessages: 50,
+            maxHistorySize: 10,
+            chatHistory: [],
+            historyPosition: -1,
+            lastInputBeforeHistory: '',
+            lastMessageTime: Date.now(),
+            fadeTimer: null,
+            fadeTimeout: 10000, // 10 секунд до уменьшения прозрачности
+            
+            // Случайные цвета для ников
+            playerColors: [
+                'player1', 'player2', 'player3', 'player4', 'player5'
+            ],
+            playerColorMap: {},
+            
+            // Инициализация
+            init: function() {
+                this.messagesEl = document.getElementById('chat-messages');
+                this.inputEl = document.getElementById('chat-input');
+                this.inputWrapper = document.getElementById('input-wrapper');
+                this.container = document.getElementById('chat-container');
+                
+                this.setupEvents();
+                this.startFadeTimer();
+                
+             },
+            
+            // Настройка обработчиков событий
+            setupEvents: function() {
+                var self = this;
+                
+                // Обработчик ввода сообщения
+                this.inputEl.addEventListener('keydown', function(e) {
+                    self.handleInput(e);
+                });
+                
+                // Глобальные горячие клавиши
+                document.addEventListener('keydown', function(e) {
+                    self.handleHotkeys(e);
+                });
+                
+                // Клик вне поля ввода для закрытия
+                document.addEventListener('click', function(e) {
+                    if (self.isOpen && !self.inputWrapper.contains(e.target)) {
+                        self.closeChat();
+                    }
+                });
+                
+                // События от сервера
+                try {
+                    bullymp.addEvent('chatMessage', function(message) {
+                        self.addMessage(message);
+                    });
+                    
+                } catch (e) {
+                    console.error('Чат: Ошибка настройки событий');
+                    
+                    // Для демонстрации - имитируем получение сообщений
+                    setInterval(() => {
+                        if (Math.random() > 0.8) {
+                            var players = ['Игрок1', 'Игрок2', 'Игрок3', 'Бот', 'Новичок'];
+                            var messages = [
+                                'Привет всем!',
+                                'Как дела?',
+                                'Кто играет?',
+                                'Где найти оружие?',
+                                'Помогите!',
+                                'Отличный сервер!',
+                                'Идём в рейд?',
+                                'Встречаемся у входа'
+                            ];
+                            
+                            var player = players[Math.floor(Math.random() * players.length)];
+                            var message = messages[Math.floor(Math.random() * messages.length)];
+                            self.addMessage('<span class="' + self.getPlayerColor(player) + '">' + player + ':</span> ' + message);
+                        }
+                    }, 5000);
+                }
+            },
+            
+            // Получить цвет для ника
+            getPlayerColor: function(playerName) {
+                if (!this.playerColorMap[playerName]) {
+                    var colorIndex = Object.keys(this.playerColorMap).length % this.playerColors.length;
+                    this.playerColorMap[playerName] = this.playerColors[colorIndex];
+                }
+                return this.playerColorMap[playerName];
+            },
+            
+            // Добавление сообщения
+            addMessage: function(message) {
+                if (!message || message.trim() === '') return;
+                
+                // Активируем чат при новом сообщении
+                this.activateChat();
+                
+                var messageEl = document.createElement('div');
+                messageEl.className = 'message new';
+                messageEl.innerHTML = message;
+                
+                // Добавляем сообщение в конец списка
+                this.messagesEl.appendChild(messageEl);
+                
+                // Удаляем класс new через секунду
+                var self = this;
+                setTimeout(function() {
+                    if (messageEl.parentNode) {
+                        messageEl.classList.remove('new');
+                    }
+                }, 1000);
+                
+                this.trimMessages();
+                this.lastMessageTime = Date.now();
+                
+                // Перезапускаем таймер исчезновения
+                this.restartFadeTimer();
+            },
+            
+            // Активация чата (при новом сообщении)
+            activateChat: function() {
+                this.isActive = true;
+                this.container.classList.remove('transparent');
+                this.container.classList.add('active');
+            },
+            
+            // Деактивация чата (после 10 секунд бездействия)
+            deactivateChat: function() {
+                this.isActive = false;
+                this.container.classList.remove('active');
+                this.container.classList.add('transparent');
+            },
+            
+            // Таймер для изменения прозрачности чата
+            startFadeTimer: function() {
+                var self = this;
+                this.fadeTimer = setInterval(function() {
+                    if (!self.isOpen && self.isActive) {
+                        var timeSinceLastMessage = Date.now() - self.lastMessageTime;
+                        if (timeSinceLastMessage >= self.fadeTimeout) {
+                            self.deactivateChat();
+                        }
+                    }
+                }, 1000);
+            },
+            
+            // Перезапуск таймера
+            restartFadeTimer: function() {
+                // При активации сбрасываем таймер
+                if (this.isActive) {
+                    this.container.classList.remove('transparent');
+                    this.container.classList.add('active');
+                }
+            },
+            
+            // Открыть чат
+            openChat: function() {
+                if (this.isOpen) return;
+                
+                this.inputWrapper.style.display = 'block';
+                this.inputEl.value = '';
+                this.inputEl.focus();
+                this.isOpen = true;
+                this.container.classList.add('chat-open');
+                this.container.classList.remove('transparent');
+                this.activateChat();
+                
+                try {
+                    bullymp.showCursor(true);
+                } catch (e) {
+                    // Игнорируем если функции нет
+                }
+                
+                // Сбрасываем позицию истории при открытии
+                this.historyPosition = -1;
+                this.lastInputBeforeHistory = '';
+            },
+            
+            // Закрыть чат
+            closeChat: function() {
+                if (!this.isOpen) return;
+                
+                this.inputWrapper.style.display = 'none';
+                this.inputEl.value = '';
+                this.isOpen = false;
+                this.container.classList.remove('chat-open');
+                this.lastMessageTime = Date.now(); // Сбрасываем таймер при закрытии
+                
+                try {
+                    bullymp.showCursor(false);
+                } catch (e) {
+                    // Игнорируем если функции нет
+                }
+                
+                this.historyPosition = -1;
+                this.lastInputBeforeHistory = '';
+            },
+            
+            // Обработчик ввода с историей сообщений
+            handleInput: function(e) {
+                if (!this.isOpen) return;
+                
+                var self = this;
+                
+                switch (e.key) {
+                    case 'Enter':
+                        this.sendMessage();
+                        e.preventDefault();
+                        break;
+                        
+                    case 'Escape':
+                        this.closeChat();
+                        e.preventDefault();
+                        break;
+                        
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        this.navigateHistory('up');
+                        break;
+                        
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        this.navigateHistory('down');
+                        break;
+                        
+                    default:
+                        if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
+                            if (this.historyPosition !== -1) {
+                                this.historyPosition = -1;
+                                this.lastInputBeforeHistory = '';
+                            }
+                        }
+                        break;
+                }
+            },
+            
+            // Навигация по истории
+            navigateHistory: function(direction) {
+                if (this.chatHistory.length === 0) return;
+                
+                if (this.historyPosition === -1) {
+                    this.lastInputBeforeHistory = this.inputEl.value;
+                }
+                
+                if (direction === 'up') {
+                    if (this.historyPosition < this.chatHistory.length - 1) {
+                        this.historyPosition++;
+                        this.inputEl.value = this.chatHistory[this.historyPosition];
+                    }
+                } else if (direction === 'down') {
+                    if (this.historyPosition > -1) {
+                        this.historyPosition--;
+                        if (this.historyPosition === -1) {
+                            this.inputEl.value = this.lastInputBeforeHistory;
+                        } else {
+                            this.inputEl.value = this.chatHistory[this.historyPosition];
+                        }
+                    }
+                }
+                
+                var self = this;
+                setTimeout(function() {
+                    self.inputEl.selectionStart = self.inputEl.selectionEnd = self.inputEl.value.length;
+                }, 0);
+            },
+            
+            // Отправка сообщения
+            sendMessage: function() {
+                var message = this.inputEl.value.trim();
+                
+                if (message.length === 0) {
+                    this.closeChat();
+                    return;
+                }
+                
+                // Добавляем в историю
+                this.addToHistory(message);
+                
+                try {
+                    // Отправляем сообщение через API
+                    bullymp.callEvent('submitChatMessage', message);
+                } catch (error) {
+                    console.log('Сообщение отправлено: ' + message);
+                    // Для демонстрации показываем свое сообщение
+                    this.addMessage('<span class="player1">Вы:</span> ' + message);
+                }
+                
+                this.closeChat();
+            },
+            
+            // Добавление сообщения в историю
+            addToHistory: function(message) {
+                if (!message || message.trim() === '') return;
+                
+                if (this.chatHistory.length > 0 && this.chatHistory[0] === message) return;
+                
+                this.chatHistory.unshift(message);
+                
+                if (this.chatHistory.length > this.maxHistorySize) {
+                    this.chatHistory = this.chatHistory.slice(0, this.maxHistorySize);
+                }
+            },
+            
+            // Горячие клавиши
+            handleHotkeys: function(e) {
+                // T - открыть чат
+                if ((e.key === 't' || e.key === 'T' || e.key === 'е' || e.key === 'Е') && 
+                    !e.ctrlKey && !e.altKey && !e.metaKey) {
+                    if (!this.isOpen) {
+                        this.openChat();
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                }
+                
+                // ESC - закрыть чат
+                if (e.key === 'Escape' && this.isOpen) {
+                    this.closeChat();
+                    e.preventDefault();
+                }
+            },
+            
+            // Ограничение количества сообщений
+            trimMessages: function() {
+                while (this.messagesEl.children.length > this.maxMessages) {
+                    this.messagesEl.removeChild(this.messagesEl.firstChild);
+                }
+            }
+        };
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            chat.init();
+        });
+    </script>
+</body>
+</html>

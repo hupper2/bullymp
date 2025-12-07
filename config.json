@@ -1,0 +1,8 @@
+{
+    "hostname": "Bully Multiplayer Server",
+    "password": "",
+    "port": 2222,
+    "http_port": 2222,
+    "maxplayers": 24,
+    "announce": false
+}

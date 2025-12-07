@@ -1,0 +1,8 @@
+{
+  "name": "skin_changer-client",
+  "version": "1.0.0",
+  "description": "Skin changer client",
+  "main": "main.js",
+  "author": "",
+  "license": "ISC"
+}

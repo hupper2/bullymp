@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-user-select: none;
+            user-select: none;
+            background: transparent;
+            overflow: hidden;
+        }
+        
+        /* Контейнер раздачи оружия */
+        #weapon_container {
+            background: rgba(10, 10, 15, 0.95);
+            border-radius: 8px;
+            padding: 15px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            max-height: 500px;
+            display: none;
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header h3 {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            font-weight: 600;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+        }
+        
+        .close-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.9);
+            transform: scale(1.05);
+        }
+        
+        #weapon_list {
+            max-height: 380px;
+            overflow-y: auto;
+            margin: 0;
+            padding: 5px 0;
+        }
+        
+        /* Стили для скроллбара */
+        #weapon_list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #weapon_list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 3px;
+        }
+        
+        #weapon_list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+        
+        #weapon_list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+        
+        .weapon-item {
+            padding: 12px 15px;
+            margin: 6px 0;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            border: 1px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Эффект свечения при наведении */
+        .weapon-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.03),
+                transparent
+            );
+            transition: left 0.6s ease;
+        }
+        
+        .weapon-item:hover::before {
+            left: 100%;
+        }
+        
+        .weapon-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(2px);
+        }
+        
+        .weapon-item:active {
+            transform: translateX(2px) scale(0.99);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .weapon-icon {
+            margin-right: 12px;
+            color: rgba(160, 200, 255, 0.8);
+            font-size: 16px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(160, 200, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        .weapon-info {
+            flex: 1;
+        }
+        
+        .weapon-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            margin-bottom: 4px;
+        }
+        
+        .weapon-details {
+            font-size: 12px;
+            color: rgba(200, 200, 255, 0.6);
+            display: flex;
+            gap: 12px;
+        }
+        
+        .weapon-id {
+            color: rgba(255, 204, 102, 0.8);
+        }
+        
+        .hint {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 12px;
+            font-size: 12px;
+            color: rgba(200, 200, 255, 0.4);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-style: normal;
+        }
+        
+        .no-weapons {
+            text-align: center;
+            padding: 30px 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-style: italic;
+            font-size: 14px;
+        }
+        
+        /* Индикатор загрузки */
+        .giving {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        
+        .giving::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: rgba(160, 200, 255, 0.8);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* Сообщение об успешной выдаче */
+        .give-success {
+            background: rgba(76, 175, 80, 0.1) !important;
+            border-color: rgba(76, 175, 80, 0.3) !important;
+        }
+        
+        .give-success .weapon-icon {
+            color: rgba(76, 175, 80, 0.9);
+            background: rgba(76, 175, 80, 0.15);
+        }
+    </style>
+    
+    <script>
+        let isGiving = false;
+        
+        const weaponData = {
+            0: { name: "Кулаки", icon: "→" },
+            2: { name: "Бейсбольная бита", icon: "→" },
+            3: { name: "Бита", icon: "→" },
+            5: { name: "Молоток", icon: "→" },
+            7: { name: "Лопата", icon: "→" },
+            8: { name: "Гольф-клюшка", icon: "→" },
+            9: { name: "Карманный нож", icon: "→" },
+            11: { name: "Камень", icon: "→" },
+            14: { name: "Бита с гвоздями", icon: "→" },
+            15: { name: "Труба", icon: "→" },
+            23: { name: "Гранатомет", icon: "→" },
+            139: { name: "Скейтборд", icon: "→" }
+        };
+        
+        function addWeapon(weaponId, weaponName, weaponImage) {
+            var weaponList = document.getElementById('weapon_list');
+            
+            var noWeapons = document.querySelector('.no-weapons');
+            if (noWeapons) {
+                noWeapons.remove();
+            }
+            
+            var item = document.createElement('div');
+            item.className = 'weapon-item';
+            
+            var weaponInfo = weaponData[weaponId] || { 
+                name: weaponName || "Оружие " + weaponId, 
+                icon: "→" 
+            };
+            
+            item.innerHTML = `
+                <div class="weapon-icon">${weaponInfo.icon}</div>
+                <div class="weapon-info">
+                    <div class="weapon-name">${weaponInfo.name}</div>
+                    <div class="weapon-details">
+                        <span class="weapon-id">ID: ${weaponId}</span>
+                        <span>64 патронов</span>
+                    </div>
+                </div>
+            `;
+            
+            item.onclick = function() {
+                if (!isGiving) {
+                    giveWeapon(weaponId, this);
+                }
+            };
+            
+            weaponList.appendChild(item);
+        }
+        
+        function giveWeapon(weaponId, element) {
+            if (isGiving) return;
+            
+            isGiving = true;
+            
+            // Добавляем индикатор загрузки
+            element.classList.add('giving');
+            
+            // Отправляем запрос на выдачу оружия
+            bullymp.callEvent('weapon_giver.giveWeapon', weaponId, 64);
+            
+            // Через 2 секунды снимаем индикатор
+            setTimeout(() => {
+                if (isGiving) {
+                    isGiving = false;
+                    element.classList.remove('giving');
+                    element.classList.add('give-success');
+                    
+                    // Убираем успешный стиль через 1.5 секунды
+                    setTimeout(() => {
+                        element.classList.remove('give-success');
+                    }, 1500);
+                }
+            }, 2000);
+        }
+        
+        // Функция успешной выдачи (вызывается с сервера)
+        function onGiveSuccess() {
+            isGiving = false;
+            
+            // Находим все выдающиеся элементы и убираем индикатор
+            const givingElements = document.querySelectorAll('.giving');
+            givingElements.forEach(el => {
+                el.classList.remove('giving');
+                el.classList.add('give-success');
+                
+                setTimeout(() => {
+                    el.classList.remove('give-success');
+                }, 1500);
+            });
+        }
+        
+        function closeMenu() {
+            bullymp.showCursor(false);
+            document.getElementById('weapon_container').style.display = 'none';
+        }
+        
+        bullymp.addEvent('weapon_giver.addWeapon', function(weaponId, weaponName, weaponImage) {
+            addWeapon(weaponId, weaponName, weaponImage);
+        });
+        
+        bullymp.addEvent('weapon_giver.giveSuccess', function() {
+            onGiveSuccess();
+        });
+        
+        bullymp.addEvent('weapon_giver.giveFail', function() {
+            isGiving = false;
+            
+            // Убираем индикаторы загрузки при ошибке
+            const givingElements = document.querySelectorAll('.giving');
+            givingElements.forEach(el => {
+                el.classList.remove('giving');
+            });
+        });
+        
+        bullymp.addEvent('weapon_giver.show', function() {
+            document.getElementById('weapon_container').style.display = 'block';
+            bullymp.showCursor(true);
+        });
+        
+        bullymp.addEvent('weapon_giver.clearList', function() {
+            document.getElementById('weapon_list').innerHTML = '<div class="no-weapons">Нет доступного оружия</div>';
+        });
+        
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && document.getElementById('weapon_container').style.display === 'block') {
+                closeMenu();
+            }
+        });
+        
+        // Клик вне меню для закрытия
+        document.addEventListener('click', function(event) {
+            const weaponContainer = document.getElementById('weapon_container');
+            if (weaponContainer.style.display === 'block' && 
+                !weaponContainer.contains(event.target)) {
+                closeMenu();
+            }
+        });
+        
+        window.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('weapon_container').style.display = 'none';
+            
+            var weaponList = document.getElementById('weapon_list');
+            if (weaponList.children.length === 0) {
+                weaponList.innerHTML = '<div class="no-weapons">Нет доступного оружия</div>';
+            }
+            
+        });
+    </script>
+</head>
+<body>
+    <div id="weapon_container">
+        <div class="header">
+            <h3>Раздача оружия</h3>
+            <button class="close-btn" onclick="closeMenu()">×</button>
+        </div>
+        <div id="weapon_list" class="ui list">
+            <!-- Оружие будет добавляться здесь -->
+        </div>
+        <div class="hint">Выберите оружие для получения • ESC для выхода</div>
+    </div>
+</body>
+</html>
